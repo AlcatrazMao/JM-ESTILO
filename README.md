@@ -1,4 +1,4 @@
-# JM ESTILO — Estampados Premium
+# JM ESTILO
 
 Web de venta de estampados con visualizador 3D en tiempo real.
 
