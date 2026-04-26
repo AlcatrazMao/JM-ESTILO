@@ -6,6 +6,7 @@ import { useState, useCallback, useEffect } from 'react'
 import { useDesignStore, rootDesignId } from '../store/designStore'
 import { ImageEditor } from './ImageEditor'
 import { ExportPanel } from './ExportPanel'
+import { LayersPanel } from './panels/LayersPanel'
 
 interface ConstructorPageProps {
   onSaved?: () => void
@@ -369,6 +370,10 @@ export function ConstructorPage({ onSaved }: ConstructorPageProps) {
 
       {/* Main area */}
       <div className="flex-1 flex">
+        {/* Layers Panel */}
+        <LayersPanel />
+        
+        {/* Canvas */}
         <Canvas
           nodes={nodes}
           selectedIds={selectedIds}
