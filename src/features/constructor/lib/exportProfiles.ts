@@ -1,10 +1,6 @@
 // Export Profiles - Print production standards
 // Based on researched specifications for DTF, DTG, Serigrafía, Sublimación
 
-import { ref, uploadBytes, getDownloadURL } from 'firebase/storage'
-import { storage, auth } from '../../../lib/firebase'
-import { getIdToken } from '../../../lib/firebase'
-
 // ─── Profile Definitions ──────────────────────────────────────────────────────────────
 
 export interface ExportProfile {
@@ -165,9 +161,6 @@ export async function exportDesign(
   const profile = EXPORT_PROFILES.find(p => p.id === profileId)
   if (!profile) throw new Error(`Unknown profile: ${profileId}`)
   
-  const user = auth.currentUser
-  if (!user) throw new Error('Not authenticated')
-  
   // For now, create a simple canvas from design nodes
   // In full implementation, this would composite all nodes
   const canvasWidth = Math.min(design.canvas.width, Math.round(profile.maxWidthCm * profile.dpi / 2.54))
@@ -242,12 +235,14 @@ export async function exportDesign(
     background: profile.background,
   })
   
-  // Upload to Firebase
-  const storageRef = ref(storage, `exports/${user.uid}/${Date.now()}-${profileId}.${profile.format}`)
-  await uploadBytes(storageRef, blob)
-  const url = await getDownloadURL(storageRef)
+  // Return as base64 data URL
+  const dataUrl = await new Promise<string>((resolve) => {
+    const reader = new FileReader()
+    reader.onload = () => resolve(reader.result as string)
+    reader.readAsDataURL(blob)
+  })
   
-  return url
+  return dataUrl
 }
 
 // Get profile by ID

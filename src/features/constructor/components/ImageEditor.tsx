@@ -2,9 +2,6 @@
 // Uses native Canvas API - no heavy libraries
 
 import { useState, useRef, useCallback, useEffect } from 'react'
-import { ref, uploadBytes, getDownloadURL } from 'firebase/storage'
-import { storage, auth } from '../../../lib/firebase'
-import { getIdToken } from '../../../lib/firebase'
 
 interface ImageEditorProps {
   imageUrl?: string
@@ -102,22 +99,17 @@ export function ImageEditor({
     setIsUploading(true)
     setError(null)
     
-    try {
-      // Upload to Firebase Storage
-      const user = auth.currentUser
-      if (!user) throw new Error('Not authenticated')
-      
-      const token = await getIdToken()
-      const storageRef = ref(storage, `designs/${user.uid}/${Date.now()}-${file.name}`)
-      await uploadBytes(storageRef, file)
-      const url = await getDownloadURL(storageRef)
-      
-      setSrc(url)
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Upload failed')
-    } finally {
+    // Use base64 instead of Firebase Storage (free tier)
+    const reader = new FileReader()
+    reader.onload = () => {
+      setSrc(reader.result as string)
       setIsUploading(false)
     }
+    reader.onerror = () => {
+      setError('Failed to read file')
+      setIsUploading(false)
+    }
+    reader.readAsDataURL(file)
   }, [])
 
   // Handle crop adjustment
@@ -155,27 +147,17 @@ export function ImageEditor({
     if (!croppedCanvasRef.current || crop.w === 0) return
     
     setIsUploading(true)
+    setError(null)
     
     try {
-      // Get cropped as blob
+      // Get cropped canvas
       const canvas = croppedCanvasRef.current
-      const blob = await new Promise<Blob>((resolve, reject) => {
-        canvas.toBlob(b => {
-          if (b) resolve(b)
-          else reject(new Error('Failed to export'))
-        }, 'image/png', 1.0)
-      })
       
-      // Upload to Firebase
-      const user = auth.currentUser
-      if (!user) throw new Error('Not authenticated')
-      
-      const storageRef = ref(storage, `exports/${user.uid}/${Date.now()}.png`)
-      await uploadBytes(storageRef, blob)
-      const url = await getDownloadURL(storageRef)
+      // Return as base64 data URL
+      const dataUrl = canvas.toDataURL('image/png')
       
       // Return at 300 DPI (pixels)
-      onSave(url, crop.w, crop.h)
+      onSave(dataUrl, crop.w, crop.h)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Export failed')
     } finally {
