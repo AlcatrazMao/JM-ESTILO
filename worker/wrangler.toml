@@ -9,7 +9,7 @@ CORS_ORIGIN = ""
 [[d1_databases]]
 binding = "DB"
 database_name = "jm-estilo-db"
-database_id = "your-d1-database-id"
+database_id = "ddb891e6-c0c0-4307-8432-fdf3f3f773e5"
 
 # Production environment
 [env.production]
@@ -22,4 +22,4 @@ CORS_ORIGIN = ""
 [[env.production.d1_databases]]
 binding = "DB"
 database_name = "jm-estilo-db-prod"
-database_id = "your-prod-d1-database-id"
+database_id = "7fbef8b8-ee30-40c5-96dc-fb383de24ddb"
