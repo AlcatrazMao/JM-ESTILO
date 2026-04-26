@@ -1,4 +1,4 @@
-// Canvas with full drag and drop support
+// Canvas with full drag and drop support - FIXED
 
 import { useState, useRef, useCallback, useEffect } from 'react'
 import { useDesignStore, rootDesignId } from '../../store/designStore'
@@ -10,19 +10,27 @@ interface CanvasProps {
 }
 
 export function Canvas({ zoom, onZoomChange }: CanvasProps) {
-  const { nodes, selectedIds, canvasBackground, selectOne, patchNode, deleteSelected, undo, redo } = useDesignStore()
+  const { nodes, selectedIds, canvasBackground, selectOne, patchNode, addNode } = useDesignStore()
   const root = nodes[rootDesignId]
   
   const [isDragging, setIsDragging] = useState(false)
   const [dragNodeId, setDragNodeId] = useState<string | null>(null)
   const [dragStart, setDragStart] = useState({ x: 0, y: 0, nodeX: 0, nodeY: 0 })
+  const [showAddMenu, setShowAddMenu] = useState(false)
+  const [addMenuPos, setAddMenuPos] = useState({ x: 0, y: 0 })
   
   const canvasRef = useRef<HTMLDivElement>(null)
 
   // Keyboard shortcuts
   useKeyboardShortcuts({})
 
-  // Mouse handlers
+  // Prevent context menu
+  const handleContextMenu = useCallback((e: React.MouseEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
+  }, [])
+
+  // Mouse handlers for drag
   const handleMouseDown = useCallback((e: React.MouseEvent, nodeId: string) => {
     if (e.button !== 0) return
     e.stopPropagation()
@@ -47,7 +55,6 @@ export function Canvas({ zoom, onZoomChange }: CanvasProps) {
     const dx = (e.clientX - dragStart.x) / zoom
     const dy = (e.clientY - dragStart.y) / zoom
     
-    // Round to avoid subpixel issues
     const newX = Math.round(dragStart.nodeX + dx)
     const newY = Math.round(dragStart.nodeY + dy)
     
@@ -72,6 +79,39 @@ export function Canvas({ zoom, onZoomChange }: CanvasProps) {
     return () => window.removeEventListener('mouseup', handleGlobalMouseUp)
   }, [isDragging, handleMouseUp])
 
+  // Add menu handler
+  const handleCanvasDoubleClick = useCallback((e: React.MouseEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
+    setAddMenuPos({ x: e.clientX, y: e.clientY })
+    setShowAddMenu(true)
+  }, [])
+
+  const handleAddNode = useCallback((type: 'text' | 'image' | 'div') => {
+    // Calculate position relative to canvas
+    const canvasRect = canvasRef.current?.getBoundingClientRect()
+    if (!canvasRect) return
+    
+    const x = Math.round((addMenuPos.x - canvasRect.left) / zoom - 100)
+    const y = Math.round((addMenuPos.y - canvasRect.top) / zoom - 40)
+    
+    const newId = addNode(type)
+    patchNode(newId, {
+      position: { x: Math.max(0, x), y: Math.max(0, y) }
+    })
+    selectOne(newId)
+    setShowAddMenu(false)
+  }, [addMenuPos, zoom, addNode, patchNode, selectOne])
+
+  // Close add menu on click outside
+  useEffect(() => {
+    const handleClickOutside = () => setShowAddMenu(false)
+    if (showAddMenu) {
+      document.addEventListener('click', handleClickOutside)
+      return () => document.removeEventListener('click', handleClickOutside)
+    }
+  }, [showAddMenu])
+
   if (!root) return null
 
   // Helper to get node content safely
@@ -82,8 +122,11 @@ export function Canvas({ zoom, onZoomChange }: CanvasProps) {
   }
 
   return (
-    <div className="flex-1 overflow-hidden bg-bg relative">
-      {/* Zoom controls */}
+    <div 
+      className="flex-1 overflow-hidden bg-bg relative"
+      onContextMenu={handleContextMenu}
+    >
+      {/* Zoom controls - better positioned */}
       <div className="absolute top-2 right-2 z-10 flex gap-1 bg-surface rounded-lg shadow-lg p-1">
         <button 
           onClick={() => onZoomChange?.(Math.max(zoom - 0.1, 0.1))} 
@@ -98,12 +141,11 @@ export function Canvas({ zoom, onZoomChange }: CanvasProps) {
         >
           +
         </button>
-        <button 
-          onClick={() => onZoomChange?.(0.4)} 
-          className="px-2 py-1 text-xs hover:bg-bg rounded"
-        >
-          Reset
-        </button>
+      </div>
+
+      {/* Add menu hint */}
+      <div className="absolute bottom-2 left-2 z-10 text-xs text-text-dim bg-surface/80 px-2 py-1 rounded">
+        Doble clic para agregar elemento
       </div>
 
       {/* Canvas */}
@@ -113,6 +155,8 @@ export function Canvas({ zoom, onZoomChange }: CanvasProps) {
         onMouseMove={handleMouseMove}
         onMouseUp={handleMouseUp}
         onMouseLeave={handleMouseUp}
+        onDoubleClick={handleCanvasDoubleClick}
+        onContextMenu={handleContextMenu}
       >
         <div
           className="relative shadow-lg mx-auto"
@@ -126,8 +170,10 @@ export function Canvas({ zoom, onZoomChange }: CanvasProps) {
           onClick={(e) => {
             if (e.target === e.currentTarget) {
               selectOne(rootDesignId)
+              setShowAddMenu(false)
             }
           }}
+          onContextMenu={handleContextMenu}
         >
           {root.children.map((id: string) => {
             const node = nodes[id]
@@ -148,7 +194,7 @@ export function Canvas({ zoom, onZoomChange }: CanvasProps) {
             return (
               <div
                 key={id}
-                className={`absolute cursor-move transition-shadow ${
+                className={`absolute cursor-move transition-shadow select-none ${
                   isSelected ? 'ring-2 ring-gold shadow-lg' : ''
                 } ${isBeingDragged ? 'opacity-80' : ''}`}
                 style={{
@@ -167,6 +213,7 @@ export function Canvas({ zoom, onZoomChange }: CanvasProps) {
                   selectOne(id)
                 }}
                 onMouseDown={(e) => handleMouseDown(e, id)}
+                onContextMenu={handleContextMenu}
               >
                 {/* Content */}
                 {!isImage && content}
@@ -177,6 +224,9 @@ export function Canvas({ zoom, onZoomChange }: CanvasProps) {
                     className="w-full h-full object-contain pointer-events-none"
                     draggable={false}
                   />
+                )}
+                {!isImage && !content && (
+                  <span className="text-text-dim text-xs">Empty</span>
                 )}
                 
                 {/* Resize handle */}
@@ -191,6 +241,34 @@ export function Canvas({ zoom, onZoomChange }: CanvasProps) {
           })}
         </div>
       </div>
+
+      {/* Add Node Menu */}
+      {showAddMenu && (
+        <div 
+          className="fixed bg-surface shadow-lg rounded-lg p-2 z-50"
+          style={{ left: addMenuPos.x, top: addMenuPos.y }}
+          onClick={(e) => e.stopPropagation()}
+        >
+          <button
+            onClick={() => handleAddNode('text')}
+            className="w-full text-left px-3 py-2 text-sm hover:bg-bg-dim rounded"
+          >
+            📝 Agregar Texto
+          </button>
+          <button
+            onClick={() => handleAddNode('image')}
+            className="w-full text-left px-3 py-2 text-sm hover:bg-bg-dim rounded"
+          >
+            🖼️ Agregar Imagen
+          </button>
+          <button
+            onClick={() => handleAddNode('div')}
+            className="w-full text-left px-3 py-2 text-sm hover:bg-bg-dim rounded"
+          >
+            ▢ Agregar Caja
+          </button>
+        </div>
+      )}
     </div>
   )
 }
