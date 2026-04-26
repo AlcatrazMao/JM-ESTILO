@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { Viewer3D } from './Viewer3D'
 import { StampCard } from './StampCard'
 import { Stamp, GARMENTS, GCOLORS, Design, STAMPS } from '../lib/data'
+import { saveDesign } from '../lib/api'
 
 type Layout = 'split' | 'cinematic' | 'studio'
 
@@ -63,7 +64,7 @@ export function ViewerPage({ layout, selectedStamp, setSelectedStamp, savedDesig
   const allCategories = ['Todos', ...Array.from(new Set(STAMPS.map((s: Stamp) => s.cat)))]
   const filtered = filterCat === 'Todos' ? STAMPS : STAMPS.filter((s: Stamp) => s.cat === filterCat)
 
-  const handleSave = () => {
+  const handleSave = async () => {
     if (!selectedStamp) return
     const newDesign: Design = {
       id: Date.now(),
@@ -76,6 +77,12 @@ export function ViewerPage({ layout, selectedStamp, setSelectedStamp, savedDesig
     setSavedDesigns([newDesign, ...savedDesigns])
     setNotif(true)
     setTimeout(() => setNotif(false), 2000)
+    saveDesign({
+      product_id: selectedStamp.id,
+      garment_type: garment.id,
+      garment_color: gc,
+      custom_image_url: null,
+    }).catch(() => {})
   }
 
   if (layout === 'split') {

@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback } from 'react'
+import { useState, useEffect } from 'react'
 import { Viewer3D } from './components/Viewer3D'
 import { LoginPage } from './components/LoginPage'
 import { Navbar } from './components/Navbar'
@@ -6,7 +6,7 @@ import { ViewerPage } from './components/ViewerPage'
 import { CatalogPage } from './components/CatalogPage'
 import { MyDesignsPage } from './components/MyDesignsPage'
 import { TweaksPanel } from './components/TweaksPanel'
-import { Stamp, GARMENTS, GCOLORS, INIT_DESIGNS } from './lib/data'
+import { Stamp, Design, INIT_DESIGNS } from './lib/data'
 import { auth } from './lib/firebase'
 import { onAuthStateChanged, User } from 'firebase/auth'
 
@@ -20,18 +20,8 @@ const TWEAK_DEFAULTS: Record<string, string | boolean> = {
   autoRotate: true,
 }
 
-export interface Design {
-  id: number
-  garment: string
-  stampId: number
-  gc: string
-  at: string
-  name: string
-}
-
 function App() {
-  const saved = localStorage.getItem('jme_session')
-  const [user, setUser] = useState<User | null>(saved ? JSON.parse(saved) : null)
+  const [user, setUser] = useState<User | null>(null)
   const [page, setPage] = useState<Page>('viewer')
   const [selectedStamp, setSelectedStamp] = useState<Stamp | null>(null)
   const [savedDesigns, setSavedDesigns] = useState<Design[]>(INIT_DESIGNS)

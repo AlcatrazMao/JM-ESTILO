@@ -1,7 +1,6 @@
 import { useState, FormEvent } from 'react'
 import { loginWithGoogle, loginWithEmail, registerWithEmail } from '../lib/firebase'
-import { User, onAuthStateChanged } from 'firebase/auth'
-import { auth } from '../lib/firebase'
+import { User } from 'firebase/auth'
 
 interface LoginPageProps {
   onLogin: (user: User) => void
