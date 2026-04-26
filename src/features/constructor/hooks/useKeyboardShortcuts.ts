@@ -9,7 +9,7 @@ interface UseKeyboardShortcutsOptions {
 export function useKeyboardShortcuts({
   onSave,
 }: UseKeyboardShortcutsOptions = {}) {
-  const { deleteSelected, moveNodes, undo, redo } = useDesignStore()
+  const { deleteSelected, moveNodes, undo, redo, copySelected, paste, duplicateSelected } = useDesignStore()
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -26,6 +26,26 @@ export function useKeyboardShortcuts({
       if (e.key === 'Delete' || e.key === 'Backspace') {
         e.preventDefault()
         deleteSelected()
+        return
+      }
+
+      // Copy: Ctrl+C
+      if (isMeta && e.key === 'c') {
+        copySelected()
+        return
+      }
+
+      // Paste: Ctrl+V
+      if (isMeta && e.key === 'v') {
+        e.preventDefault()
+        paste()
+        return
+      }
+
+      // Duplicate: Ctrl+D
+      if (isMeta && e.key === 'd') {
+        e.preventDefault()
+        duplicateSelected()
         return
       }
 
@@ -75,12 +95,15 @@ export function useKeyboardShortcuts({
 
     window.addEventListener('keydown', handleKeyDown)
     return () => window.removeEventListener('keydown', handleKeyDown)
-  }, [deleteSelected, moveNodes, undo, redo, onSave])
+  }, [deleteSelected, moveNodes, undo, redo, onSave, copySelected, paste, duplicateSelected])
 }
 
 // Shortcut keys display helper
 export const SHORTCUTS = [
   { keys: ['Delete'], action: 'Delete selected' },
+  { keys: ['Ctrl', 'C'], action: 'Copy' },
+  { keys: ['Ctrl', 'V'], action: 'Paste' },
+  { keys: ['Ctrl', 'D'], action: 'Duplicate' },
   { keys: ['Ctrl', 'Z'], action: 'Undo' },
   { keys: ['Ctrl', 'Shift', 'Z'], action: 'Redo' },
   { keys: ['Ctrl', 'S'], action: 'Save' },

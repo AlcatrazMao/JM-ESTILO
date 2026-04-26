@@ -111,6 +111,9 @@ type DesignStore = {
   history: DesignSnapshot[]
   historyIndex: number
 
+  // Clipboard
+  clipboard: DesignNode[]
+
   // Actions
   addNode: (type: Exclude<DesignNodeType, 'canvas'>) => string
   updateNode: (id: string, updater: (node: DesignNode) => DesignNode) => void
@@ -123,6 +126,11 @@ type DesignStore = {
   selectOne: (id: string) => void
   setSelection: (ids: string[]) => void
   clearSelection: () => void
+
+  // Clipboard
+  copySelected: () => void
+  paste: () => void
+  duplicateSelected: () => void
 
   // Content
   updateContent: (id: string, content: DesignNodeContent) => void
@@ -183,6 +191,7 @@ export const useDesignStore = create<DesignStore>((set, get) => {
     canvasBackground: '#ffffff',
     history: [initialSnapshot],
     historyIndex: 0,
+  clipboard: [],
 
     addNode: (type) => {
       const state = get()
@@ -272,6 +281,50 @@ export const useDesignStore = create<DesignStore>((set, get) => {
 
     deleteSelected: () => {
       get().deleteNodes(get().selectedIds)
+    },
+
+    copySelected: () => {
+      const state = get()
+      const selected = state.selectedIds
+        .map(id => state.nodes[id])
+        .filter(Boolean)
+      set({ clipboard: selected })
+    },
+
+    paste: () => {
+      const state = get()
+      if (state.clipboard.length === 0) return
+
+      const nextNodes = { ...state.nodes }
+      const newIds: string[] = []
+
+      for (const node of state.clipboard) {
+        const newId = makeId(node.type)
+        newIds.push(newId)
+        nextNodes[newId] = {
+          ...node,
+          id: newId,
+          position: {
+            x: node.position.x + 20,
+            y: node.position.y + 20,
+          },
+        }
+      }
+
+      // Add to root
+      const root = nextNodes[ROOT_ID]
+      nextNodes[ROOT_ID] = {
+        ...root,
+        children: [...root.children, ...newIds],
+      }
+
+      const meta = pushHistory()
+      set({ nodes: nextNodes, selectedIds: newIds, ...meta })
+    },
+
+    duplicateSelected: () => {
+      get().copySelected()
+      get().paste()
     },
 
     selectOne: (id) => {
