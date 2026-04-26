@@ -1,170 +1,120 @@
-// Animations for constructor UI using anime.js v4
-import { useEffect, useRef } from 'react'
+// Animations for constructor elements
 
-// Check if animejs is available
-let anime: typeof import('animejs') | null = null
-try {
-  import('animejs').then(m => { anime = m })
-} catch {}
+export type AnimationType = 
+  | 'none' 
+  | 'fadeIn' 
+  | 'slideInLeft' 
+  | 'slideInRight' 
+  | 'slideInTop' 
+  | 'slideInBottom'
+  | 'scaleIn' 
+  | 'bounceIn' 
+  | 'pulse'
 
-// ─── Animation Hooks ──────────────────────────────────────────────────────────────
+export interface AnimationConfig {
+  type: AnimationType
+  duration: number  // ms
+  delay: number   // ms
+  ease: 'linear' | 'ease' | 'ease-in' | 'ease-out' | 'ease-in-out'
+}
 
-// Animate-in on mount
-export function useAnimateIn<T extends HTMLElement>(
-  options?: {
-    delay?: number
-    duration?: number
-    easing?: string
+export const DEFAULT_ANIMATION: AnimationConfig = {
+  type: 'none',
+  duration: 300,
+  delay: 0,
+  ease: 'ease-out',
+}
+
+export const ANIMATION_PRESETS: AnimationConfig[] = [
+  { type: 'fadeIn', duration: 300, delay: 0, ease: 'ease-out' },
+  { type: 'slideInLeft', duration: 300, delay: 0, ease: 'ease-out' },
+  { type: 'slideInRight', duration: 300, delay: 0, ease: 'ease-out' },
+  { type: 'slideInTop', duration: 300, delay: 0, ease: 'ease-out' },
+  { type: 'slideInBottom', duration: 300, delay: 0, ease: 'ease-out' },
+  { type: 'scaleIn', duration: 300, delay: 0, ease: 'ease-out' },
+  { type: 'bounceIn', duration: 500, delay: 0, ease: 'ease-out' },
+  { type: 'pulse', duration: 1000, delay: 0, ease: 'linear' },
+]
+
+// Get CSS animation from config
+export function getAnimationCSS(config: AnimationConfig, elementRef: React.RefObject<HTMLElement>) {
+  const { type, duration, delay, ease } = config
+  
+  if (type === 'none' || !elementRef.current) return
+  
+  const keyframes = getKeyframes(type)
+  elementRef.current.animate(keyframes, {
+    duration,
+    delay,
+    easing: ease,
+    fill: 'forwards',
+  })
+}
+
+// Get keyframes for animation type
+function getKeyframes(type: AnimationType): Keyframe[] {
+  switch (type) {
+    case 'fadeIn':
+      return [
+        { opacity: 0 },
+        { opacity: 1 },
+      ]
+    case 'slideInLeft':
+      return [
+        { transform: 'translateX(-100%)', opacity: 0 },
+        { transform: 'translateX(0)', opacity: 1 },
+      ]
+    case 'slideInRight':
+      return [
+        { transform: 'translateX(100%)', opacity: 0 },
+        { transform: 'translateX(0)', opacity: 1 },
+      ]
+    case 'slideInTop':
+      return [
+        { transform: 'translateY(-100%)', opacity: 0 },
+        { transform: 'translateY(0)', opacity: 1 },
+      ]
+    case 'slideInBottom':
+      return [
+        { transform: 'translateY(100%)', opacity: 0 },
+        { transform: 'translateY(0)', opacity: 1 },
+      ]
+    case 'scaleIn':
+      return [
+        { transform: 'scale(0)', opacity: 0 },
+        { transform: 'scale(1)', opacity: 1 },
+      ]
+    case 'bounceIn':
+      return [
+        { transform: 'scale(0)', opacity: 0 },
+        { transform: 'scale(1.2)', opacity: 1, offset: 0.6 },
+        { transform: 'scale(1)', opacity: 1 },
+      ]
+    case 'pulse':
+      return [
+        { transform: 'scale(1)' },
+        { transform: 'scale(1.05)' },
+        { transform: 'scale(1)' },
+      ]
+    default:
+      return []
   }
-) {
-  const ref = useRef<T>(null)
-  
-  useEffect(() => {
-    if (!ref.current || !anime) return
-    
-    const { animate } = window as any
-    if (animate) {
-      animate(ref.current, {
-        opacity: [0, 1],
-        translateY: [20, 0],
-        delay: options?.delay || 0,
-        duration: options?.duration || 400,
-        easing: options?.easing || 'out(2)',
-      })
-    }
-  }, [])
-  
-  return ref
 }
 
-// Animate hover effect
-export function useAnimateHover<T extends HTMLElement>(
-  onHoverIn?: () => void,
-  onHoverOut?: () => void
-) {
-  const ref = useRef<T>(null)
-  const { animate } = window as any
-  
-  useEffect(() => {
-    if (!ref.current || !animate) return
-    
-    ref.current.addEventListener('mouseenter', () => {
-      animate(ref.current, {
-        scale: 1.05,
-        duration: 200,
-        easing: 'out(2)',
-      })
-      onHoverIn?.()
-    })
-    
-    ref.current.addEventListener('mouseleave', () => {
-      animate(ref.current, {
-        scale: 1,
-        duration: 200,
-        easing: 'out(2)',
-      })
-      onHoverOut?.()
-    })
-  }, [])
-  
-  return ref
-}
-
-// Animate button press
-export function useAnimatePress<T extends HTMLElement>() {
-  const ref = useRef<T>(null)
-  const { animate } = window as any
-  
-  const handlePress = () => {
-    if (!ref.current || !animate) return
-    
-    animate(ref.current, {
-      scale: [1, 0.95, 1],
-      duration: 150,
-      easing: 'out(2)',
-    })
+// Get animation name for CSS class
+export function getAnimationClass(type: AnimationType): string {
+  const map: Record<AnimationType, string> = {
+    none: '',
+    fadeIn: 'animate-fade-in',
+    slideInLeft: 'animate-slide-in-left',
+    slideInRight: 'animate-slide-in-right',
+    slideInTop: 'animate-slide-in-top',
+    slideInBottom: 'animate-slide-in-bottom',
+    scaleIn: 'animate-scale-in',
+    bounceIn: 'animate-bounce-in',
+    pulse: 'animate-pulse',
   }
-  
-  return { ref, handlePress }
+  return map[type]
 }
 
-// Animate panel slide
-export function animateSlideIn(
-  element: HTMLElement,
-  direction: 'left' | 'right' | 'up' | 'down' = 'up',
-  options?: { delay?: number; duration?: number }
-) {
-  const { animate } = window as any
-  if (!animate) return
-  
-  const from = {
-    left: [-50, 0],
-    right: [50, 0],
-    up: [30, 0],
-    down: [-30, 0],
-  }[direction]
-  
-  animate(element, {
-    opacity: [0, 1],
-    translate: from,
-    delay: options?.delay || 0,
-    duration: options?.duration || 300,
-    easing: 'out(2)',
-  })
-}
-
-// Animate success feedback
-export function animateSuccess(element: HTMLElement) {
-  const { animate } = window as any
-  if (!animate) return
-  
-  animate(element, {
-    scale: [0.8, 1.1, 1],
-    backgroundColor: ['#000000', '#16a34a', '#16a34a'],
-    duration: 400,
-    easing: 'spring(1, 80)',
-  })
-}
-
-// Animate error shake
-export function animateError(element: HTMLElement) {
-  const { animate } = window as any
-  if (!animate) return
-  
-  animate(element, {
-    translateX: [-10, 10, -10, 10, 0],
-    duration: 400,
-    easing: 'out(2)',
-  })
-}
-
-// Stagger animation for lists
-export function animateStagger(
-  elements: HTMLElement[],
-  options?: {
-    delay?: number
-    duration?: number
-    stagger?: number
-  }
-) {
-  const { animate } = window as any
-  if (!animate) return
-  
-  animate(elements, {
-    opacity: [0, 1],
-    translateY: [20, 0],
-    delay: animate.stagger(options?.stagger || 50, { from: 'first' }),
-    duration: options?.duration || 300,
-    easing: 'out(2)',
-  })
-}
-
-export default {
-  useAnimateIn,
-  useAnimateHover,
-  useAnimatePress,
-  animateSlideIn,
-  animateSuccess,
-  animateError,
-  animateStagger,
-}
+export default AnimationConfig
