@@ -5,6 +5,7 @@
 import { useState, useCallback, useEffect } from 'react'
 import { useDesignStore, rootDesignId } from '../store/designStore'
 import { ImageEditor } from './ImageEditor'
+import { ExportPanel } from './ExportPanel'
 
 interface ConstructorPageProps {
   onSaved?: () => void
@@ -262,6 +263,13 @@ export function ConstructorPage({ onSaved }: ConstructorPageProps) {
     onSave: (url: string) => void
   }>({ onSave: () => {} })
 
+  // Export panel state
+  const [exportPanelOpen, setExportPanelOpen] = useState(false)
+  const [exportPanelConfig, setExportPanelConfig] = useState<{
+    design: { nodes: any; canvas: any }
+    onExportComplete: (url: string) => void
+  }>({ design: { nodes: {}, canvas: {} }, onExportComplete: () => {} })
+
   // Listen for image editor events
   useEffect(() => {
     const handler = (e: CustomEvent) => {
@@ -270,6 +278,16 @@ export function ConstructorPage({ onSaved }: ConstructorPageProps) {
     }
     window.addEventListener('jme:openImageEditor', handler as EventListener)
     return () => window.removeEventListener('jme:openImageEditor', handler as EventListener)
+  }, [])
+
+  // Listen for export panel events
+  useEffect(() => {
+    const handler = (e: CustomEvent) => {
+      setExportPanelConfig(e.detail)
+      setExportPanelOpen(true)
+    }
+    window.addEventListener('jme:openExportPanel', handler as EventListener)
+    return () => window.removeEventListener('jme:openExportPanel', handler as EventListener)
   }, [])
 
   const handleAddNode = useCallback((type: 'text' | 'image' | 'div') => {
@@ -285,14 +303,16 @@ export function ConstructorPage({ onSaved }: ConstructorPageProps) {
   }, [deleteSelected])
 
   const handleSave = useCallback(() => {
-    // Export design as JSON
-    const design = {
-      nodes,
-      canvas: { width: 1200, height: 1600, background: canvasBackground },
-      createdAt: new Date().toISOString(),
-    }
-    console.log('Design saved:', JSON.stringify(design, null, 2))
-    onSaved?.()
+    // Show export panel
+    window.dispatchEvent(new CustomEvent('jme:openExportPanel', { 
+      detail: { 
+        design: { nodes, canvas: { width: 1200, height: 1600, background: canvasBackground } },
+        onExportComplete: (url: string) => {
+          console.log('Exported:', url)
+          onSaved?.()
+        }
+      } 
+    }))
   }, [nodes, canvasBackground, onSaved])
 
   const canUndo = historyIndex > 0
@@ -355,6 +375,18 @@ export function ConstructorPage({ onSaved }: ConstructorPageProps) {
             setImageEditorOpen(false)
           }}
           onCancel={() => setImageEditorOpen(false)}
+        />
+      )}
+
+      {/* Export Panel Modal */}
+      {exportPanelOpen && (
+        <ExportPanel
+          design={exportPanelConfig.design}
+          onExportComplete={(url) => {
+            exportPanelConfig.onExportComplete(url)
+            setExportPanelOpen(false)
+          }}
+          onCancel={() => setExportPanelOpen(false)}
         />
       )}
     </div>
