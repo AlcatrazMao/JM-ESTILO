@@ -1,8 +1,10 @@
 // Constructor Page - Heavy module, lazy loaded
 // Uses designStore for state management
+// Includes ImageEditor for image manipulation
 
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useEffect } from 'react'
 import { useDesignStore, rootDesignId } from '../store/designStore'
+import { ImageEditor } from './ImageEditor'
 
 interface ConstructorPageProps {
   onSaved?: () => void
@@ -184,14 +186,43 @@ function Inspector({ selectedIds, nodes, onUpdate, onDelete }: {
       {/* Image src */}
       {node.type === 'image' && (
         <div className="mb-4">
-          <label className="text-xs text-text-dim block mb-1">Image URL</label>
-          <input
-            type="text"
-            value={(node.content as any)?.src || ''}
-            onChange={(e) => onUpdate(node.id, { content: { src: e.target.value, alt: (node.content as any)?.alt || '' } })}
-            className="w-full px-2 py-1 bg-bg border border-border text-xs"
-            placeholder="https://..."
-          />
+          <label className="text-xs text-text-dim block mb-1">Image</label>
+          {(node.content as any)?.src ? (
+            <div className="relative">
+              <img 
+                src={(node.content as any).src} 
+                alt={(node.content as any).alt || ''} 
+                className="w-full h-32 object-contain bg-bg rounded mb-2"
+              />
+              <button
+                onClick={() => {
+                  // Will be connected to ImageEditor via store
+                  window.dispatchEvent(new CustomEvent('jme:openImageEditor', { 
+                    detail: { 
+                      imageUrl: (node.content as any).src,
+                      onSave: (url: string) => onUpdate(node.id, { content: { src: url, alt: (node.content as any).alt || '' } })
+                    } 
+                  }))
+                }}
+                className="w-full py-2 bg-bg border border-border text-xs uppercase hover:border-gold"
+              >
+                Edit Image
+              </button>
+            </div>
+          ) : (
+            <button
+              onClick={() => {
+                window.dispatchEvent(new CustomEvent('jme:openImageEditor', { 
+                  detail: { 
+                    onSave: (url: string) => onUpdate(node.id, { content: { src: url, alt: '' } })
+                  } 
+                }))
+              }}
+              className="w-full py-2 bg-gold text-[#0a0808] text-xs uppercase"
+            >
+              Add Image
+            </button>
+          )}
         </div>
       )}
 
@@ -223,6 +254,23 @@ export function ConstructorPage({ onSaved }: ConstructorPageProps) {
     undo,
     redo,
   } = useDesignStore()
+
+  // Image editor state
+  const [imageEditorOpen, setImageEditorOpen] = useState(false)
+  const [imageEditorConfig, setImageEditorConfig] = useState<{
+    imageUrl?: string
+    onSave: (url: string) => void
+  }>({ onSave: () => {} })
+
+  // Listen for image editor events
+  useEffect(() => {
+    const handler = (e: CustomEvent) => {
+      setImageEditorConfig(e.detail)
+      setImageEditorOpen(true)
+    }
+    window.addEventListener('jme:openImageEditor', handler as EventListener)
+    return () => window.removeEventListener('jme:openImageEditor', handler as EventListener)
+  }, [])
 
   const handleAddNode = useCallback((type: 'text' | 'image' | 'div') => {
     addNode(type)
@@ -297,6 +345,18 @@ export function ConstructorPage({ onSaved }: ConstructorPageProps) {
           onDelete={handleDelete}
         />
       </div>
+
+      {/* Image Editor Modal */}
+      {imageEditorOpen && (
+        <ImageEditor
+          imageUrl={imageEditorConfig.imageUrl}
+          onSave={(url) => {
+            imageEditorConfig.onSave(url)
+            setImageEditorOpen(false)
+          }}
+          onCancel={() => setImageEditorOpen(false)}
+        />
+      )}
     </div>
   )
 }
