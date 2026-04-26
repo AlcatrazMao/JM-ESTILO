@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, lazy, Suspense } from 'react'
 import { Viewer3D } from './components/Viewer3D'
 import { LoginPage } from './components/LoginPage'
 import { Navbar } from './components/Navbar'
@@ -10,7 +10,10 @@ import { Stamp, Design, INIT_DESIGNS } from './lib/data'
 import { auth } from './lib/firebase'
 import { onAuthStateChanged, User } from 'firebase/auth'
 
-type Page = 'viewer' | 'catalog' | 'designs'
+// Lazy load constructor (heavy module - only loads when needed)
+const ConstructorPage = lazy(() => import('./features/constructor/components/ConstructorPage').then(m => ({ default: m.ConstructorPage })))
+
+type Page = 'viewer' | 'catalog' | 'designs' | 'constructor'
 type Layout = 'split' | 'cinematic' | 'studio'
 
 const TWEAK_DEFAULTS: Record<string, string | boolean> = {
@@ -117,6 +120,15 @@ function App() {
             setSelectedStamp={setSelectedStamp}
             setPage={setPage}
           />
+        )}
+        {page === 'constructor' && (
+          <Suspense fallback={
+            <div className="w-full h-full flex items-center justify-center bg-bg">
+              <div className="text-gold text-sm tracking-widest animate-pulse">CARGANDO EDITOR...</div>
+            </div>
+          }>
+            <ConstructorPage onSaved={() => setPage('designs')} />
+          </Suspense>
         )}
       </div>
       <TweaksPanel tweaks={tweaks} onChange={handleTweaks} visible={tweaksVisible} />

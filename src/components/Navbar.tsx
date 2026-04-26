@@ -1,6 +1,6 @@
 import { User } from 'firebase/auth'
 
-type Page = 'viewer' | 'catalog' | 'designs'
+type Page = 'viewer' | 'catalog' | 'designs' | 'constructor'
 
 interface NavbarProps {
   page: Page
@@ -14,6 +14,7 @@ export function Navbar({ page, setPage, user, onLogout }: NavbarProps) {
     { id: 'viewer' as const, label: 'Diseñar' },
     { id: 'catalog' as const, label: 'Catálogo' },
     { id: 'designs' as const, label: 'Mis Diseños' },
+    { id: 'constructor' as const, label: 'Editor' },
   ]
 
   const displayName = user.displayName || user.email?.split('@')[0] || 'Usuario'

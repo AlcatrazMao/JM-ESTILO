@@ -2,7 +2,13 @@ import { useEffect, useMemo } from 'react'
 import { Canvas } from '@react-three/fiber'
 import { OrbitControls, Environment, ContactShadows } from '@react-three/drei'
 import * as THREE from 'three'
+// Override: Shape is not exported in @types/three v0.160 but exists at runtime
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const Shape = (THREE as any).Shape
 import { Stamp } from '../lib/data'
+
+// NOTE: @types/three v0.160 is incompatible with three v0.160 (Shape not exported)
+const Shp = Shape as any
 
 interface Viewer3DProps {
   garment: { id: string; label: string }
@@ -63,8 +69,8 @@ const EXTRUDE: THREE.ExtrudeGeometryOptions = {
   bevelSegments: 2,
 }
 
-function makeTshirt(): THREE.Shape {
-  const s = new THREE.Shape()
+function makeTshirt() {
+  const s = new Shp()
   s.moveTo(-0.38, -0.5)
   s.lineTo(0.38, -0.5)
   s.lineTo(0.38, 0.07)
@@ -81,8 +87,8 @@ function makeTshirt(): THREE.Shape {
   return s
 }
 
-function makeHoodie(): THREE.Shape {
-  const s = new THREE.Shape()
+function makeHoodie() {
+  const s = new Shp()
   s.moveTo(-0.44, -0.5)
   s.lineTo(0.44, -0.5)
   s.lineTo(0.44, 0.06)
@@ -99,8 +105,8 @@ function makeHoodie(): THREE.Shape {
   return s
 }
 
-function makeCrewneck(): THREE.Shape {
-  const s = new THREE.Shape()
+function makeCrewneck() {
+  const s = new Shp()
   s.moveTo(-0.41, -0.5)
   s.lineTo(0.41, -0.5)
   s.lineTo(0.41, 0.06)
@@ -117,8 +123,8 @@ function makeCrewneck(): THREE.Shape {
   return s
 }
 
-function makeTote(): THREE.Shape {
-  const s = new THREE.Shape()
+function makeTote() {
+  const s = new Shp()
   s.moveTo(-0.38, -0.5)
   s.lineTo(0.38, -0.5)
   s.lineTo(0.38, 0.36)
@@ -135,7 +141,7 @@ function makeTote(): THREE.Shape {
   return s
 }
 
-const SHAPE_MAP: Record<string, () => THREE.Shape> = {
+const SHAPE_MAP: Record<string, () => any> = {
   tshirt: makeTshirt,
   hoodie: makeHoodie,
   crewneck: makeCrewneck,
