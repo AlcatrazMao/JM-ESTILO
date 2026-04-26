@@ -11,7 +11,8 @@ interface ConstructorPageProps {
   onSaved?: () => void
 }
 
-// Simple toolbar component
+// ─── Toolbar ──────────────────────────────────────────────────────────────
+
 function Toolbar({ onAddNode, onUndo, onRedo, canUndo, canRedo }: {
   onAddNode: (type: 'text' | 'image' | 'div') => void
   onUndo: () => void
@@ -20,9 +21,9 @@ function Toolbar({ onAddNode, onUndo, onRedo, canUndo, canRedo }: {
   canRedo: boolean
 }) {
   const tools = [
-    { type: 'text' as const, label: 'Aa' },
-    { type: 'image' as const, label: '🖼' },
-    { type: 'div' as const, label: '□' },
+    { type: 'text' as const, label: 'Aa', title: 'Texto' },
+    { type: 'image' as const, label: '🖼', title: 'Imagen' },
+    { type: 'div' as const, label: '□', title: 'Contenedor' },
   ]
 
   return (
@@ -32,87 +33,113 @@ function Toolbar({ onAddNode, onUndo, onRedo, canUndo, canRedo }: {
           key={t.type}
           onClick={() => onAddNode(t.type)}
           className="w-10 h-10 flex items-center justify-center bg-bg border border-border rounded hover:border-gold transition-colors text-lg"
+          title={t.title}
         >
           {t.label}
         </button>
       ))}
       <div className="w-px h-8 bg-border mx-2" />
-      <button
-        onClick={onUndo}
-        disabled={!canUndo}
-        className="px-3 py-1.5 text-xs uppercase disabled:opacity-50 enabled:hover:bg-bg"
-      >
+      <button onClick={onUndo} disabled={!canUndo} className="px-3 py-1.5 text-xs uppercase disabled:opacity-50 enabled:hover:bg-bg">
         ↩ Undo
       </button>
-      <button
-        onClick={onRedo}
-        disabled={!canRedo}
-        className="px-3 py-1.5 text-xs uppercase disabled:opacity-50 enabled:hover:bg-bg"
-      >
+      <button onClick={onRedo} disabled={!canRedo} className="px-3 py-1.5 text-xs uppercase disabled:opacity-50 enabled:hover:bg-bg">
         ↪ Redo
       </button>
     </div>
   )
 }
 
-// Canvas area
+// ─── Canvas with zoom and drag ─────────────────────────────────────────────────
+
 function Canvas({ nodes, selectedIds, onSelect, canvasBg }: {
   nodes: Record<string, any>
   selectedIds: string[]
   onSelect: (id: string) => void
   canvasBg: string
 }) {
+  const [zoom, setZoom] = useState(0.4)
+  const [isDragging, setIsDragging] = useState(false)
+  const [dragStart, setDragStart] = useState({ x: 0, y: 0 })
   const root = nodes[rootDesignId]
   if (!root) return null
 
+  const handleMouseDown = (e: React.MouseEvent, id: string) => {
+    e.stopPropagation()
+    onSelect(id)
+  }
+
+  const isSelected = (id: string) => selectedIds.includes(id)
+
   return (
-    <div className="flex-1 overflow-auto bg-bg p-8">
-      <div
-        className="relative shadow-lg mx-auto"
-        style={{
-          width: root.size.w,
-          height: root.size.h,
-          background: canvasBg,
-          transform: 'scale(0.4)',
-          transformOrigin: 'top left',
-        }}
-        onClick={(e) => {
-          if (e.target === e.currentTarget) onSelect(rootDesignId)
-        }}
-      >
-        {root.children.map((id: string) => {
-          const node = nodes[id]
-          if (!node || node.visible === false) return null
-          const isSelected = selectedIds.includes(id)
-          return (
-            <div
-              key={id}
-              className={`absolute cursor-move ${isSelected ? 'ring-2 ring-gold' : ''}`}
-              style={{
-                left: node.position.x,
-                top: node.position.y,
-                width: node.size.w,
-                height: node.size.h,
-                ...node.styles,
-              }}
-              onClick={(e) => {
-                e.stopPropagation()
-                onSelect(id)
-              }}
-            >
-              {node.type === 'text' && node.content?.text}
-              {node.type === 'image' && node.content?.src && (
-                <img src={node.content.src} alt={node.content.alt || ''} className="w-full h-full object-contain" />
-              )}
-            </div>
-          )
-        })}
+    <div className="flex-1 overflow-hidden bg-bg relative">
+      {/* Zoom controls */}
+      <div className="absolute top-2 right-2 z-10 flex gap-1 bg-surface rounded shadow-lg p-1">
+        <button onClick={() => setZoom(z => Math.max(z - 0.1, 0.1))} className="w-6 h-6 text-xs hover:bg-bg rounded">−</button>
+        <span className="px-2 py-1 text-xs min-w-[3rem] text-center">{Math.round(zoom * 100)}%</span>
+        <button onClick={() => setZoom(z => Math.min(z + 0.1, 2))} className="w-6 h-6 text-xs hover:bg-bg rounded">+</button>
+        <button onClick={() => setZoom(0.4)} className="px-2 py-1 text-xs hover:bg-bg rounded">Reset</button>
+      </div>
+      
+      {/* Scrollable area */}
+      <div className="w-full h-full overflow-auto p-8">
+        <div
+          className="relative shadow-lg mx-auto"
+          style={{
+            width: root.size.w * zoom,
+            height: root.size.h * zoom,
+            background: canvasBg,
+          }}
+          onClick={(e) => {
+            if (e.target === e.currentTarget) onSelect(rootDesignId)
+          }}
+        >
+          {root.children.map((id: string) => {
+            const node = nodes[id]
+            if (!node || node.visible === false) return null
+            return (
+              <div
+                key={id}
+                className={`absolute cursor-move ${isSelected(id) ? 'ring-2 ring-gold' : ''}`}
+                style={{
+                  left: node.position.x * zoom,
+                  top: node.position.y * zoom,
+                  width: node.size.w * zoom,
+                  height: node.size.h * zoom,
+                  backgroundColor: node.styles?.background,
+                  borderRadius: node.styles?.borderRadius,
+                  padding: node.styles?.padding ? Number(node.styles.padding) * zoom : 0,
+                  fontSize: ((node.styles?.fontSize as number) || 24) * zoom,
+                  color: node.styles?.color,
+                }}
+                onClick={(e) => {
+                  e.stopPropagation()
+                  onSelect(id)
+                }}
+                onMouseDown={(e) => handleMouseDown(e, id)}
+              >
+                {node.type === 'text' && node.content?.text}
+                {node.type === 'image' && node.content?.src && (
+                  <img 
+                    src={node.content.src} 
+                    alt={node.content.alt || ''} 
+                    className="w-full h-full object-contain"
+                    draggable={false}
+                  />
+                )}
+                {node.type === 'div' && node.children?.length > 0 && (
+                  <div className="text-xs text-text-dim">{node.children.length} children</div>
+                )}
+              </div>
+            )
+          })}
+        </div>
       </div>
     </div>
   )
 }
 
-// Properties panel
+// ─── Inspector ─────────────────────────────────────────────────────────
+
 function Inspector({ selectedIds, nodes, onUpdate, onDelete }: {
   selectedIds: string[]
   nodes: Record<string, any>
@@ -131,7 +158,7 @@ function Inspector({ selectedIds, nodes, onUpdate, onDelete }: {
   }
 
   return (
-    <div className="w-64 bg-surface border-l border-border p-4">
+    <div className="w-64 bg-surface border-l border-border p-4 overflow-auto">
       <div className="text-xs uppercase tracking-wider mb-4 text-text-dim">{node.type}</div>
       
       {/* Position */}
@@ -184,7 +211,7 @@ function Inspector({ selectedIds, nodes, onUpdate, onDelete }: {
         </div>
       )}
 
-      {/* Image src */}
+      {/* Image editor */}
       {node.type === 'image' && (
         <div className="mb-4">
           <label className="text-xs text-text-dim block mb-1">Image</label>
@@ -197,7 +224,6 @@ function Inspector({ selectedIds, nodes, onUpdate, onDelete }: {
               />
               <button
                 onClick={() => {
-                  // Will be connected to ImageEditor via store
                   window.dispatchEvent(new CustomEvent('jme:openImageEditor', { 
                     detail: { 
                       imageUrl: (node.content as any).src,
@@ -207,7 +233,7 @@ function Inspector({ selectedIds, nodes, onUpdate, onDelete }: {
                 }}
                 className="w-full py-2 bg-bg border border-border text-xs uppercase hover:border-gold"
               >
-                Edit Image
+                Change Image
               </button>
             </div>
           ) : (
@@ -227,7 +253,7 @@ function Inspector({ selectedIds, nodes, onUpdate, onDelete }: {
         </div>
       )}
 
-      {/* Delete button */}
+      {/* Delete */}
       <button
         onClick={onDelete}
         className="w-full py-2 bg-red-500/10 text-red-500 text-xs uppercase tracking-wider hover:bg-red-500/20"
@@ -238,19 +264,18 @@ function Inspector({ selectedIds, nodes, onUpdate, onDelete }: {
   )
 }
 
-// Main Constructor Page
+// ─── Main Constructor Page ───────────────────────────────────────────────
+
 export function ConstructorPage({ onSaved }: ConstructorPageProps) {
   const {
     nodes,
     selectedIds,
-    activeContainerId,
     canvasBackground,
     historyIndex,
     history,
     addNode,
     patchNode,
     selectOne,
-    clearSelection,
     deleteSelected,
     undo,
     redo,
@@ -270,24 +295,23 @@ export function ConstructorPage({ onSaved }: ConstructorPageProps) {
     onExportComplete: (url: string) => void
   }>({ design: { nodes: {}, canvas: {} }, onExportComplete: () => {} })
 
-  // Listen for image editor events
+  // Listen for events
   useEffect(() => {
-    const handler = (e: CustomEvent) => {
+    const imgHandler = (e: CustomEvent) => {
       setImageEditorConfig(e.detail)
       setImageEditorOpen(true)
     }
-    window.addEventListener('jme:openImageEditor', handler as EventListener)
-    return () => window.removeEventListener('jme:openImageEditor', handler as EventListener)
+    window.addEventListener('jme:openImageEditor', imgHandler as EventListener)
+    return () => window.removeEventListener('jme:openImageEditor', imgHandler as EventListener)
   }, [])
 
-  // Listen for export panel events
   useEffect(() => {
-    const handler = (e: CustomEvent) => {
+    const expHandler = (e: CustomEvent) => {
       setExportPanelConfig(e.detail)
       setExportPanelOpen(true)
     }
-    window.addEventListener('jme:openExportPanel', handler as EventListener)
-    return () => window.removeEventListener('jme:openExportPanel', handler as EventListener)
+    window.addEventListener('jme:openExportPanel', expHandler as EventListener)
+    return () => window.removeEventListener('jme:openExportPanel', expHandler as EventListener)
   }, [])
 
   const handleAddNode = useCallback((type: 'text' | 'image' | 'div') => {
@@ -303,7 +327,6 @@ export function ConstructorPage({ onSaved }: ConstructorPageProps) {
   }, [deleteSelected])
 
   const handleSave = useCallback(() => {
-    // Show export panel
     window.dispatchEvent(new CustomEvent('jme:openExportPanel', { 
       detail: { 
         design: { nodes, canvas: { width: 1200, height: 1600, background: canvasBackground } },
@@ -330,11 +353,8 @@ export function ConstructorPage({ onSaved }: ConstructorPageProps) {
           onChange={(e) => useDesignStore.getState().setCanvasBackground(e.target.value)}
           className="w-8 h-8 cursor-pointer"
         />
-        <button
-          onClick={handleSave}
-          className="px-4 py-1.5 bg-gold text-[#0a0808] text-xs uppercase tracking-wider"
-        >
-          Guardar
+        <button onClick={handleSave} className="px-4 py-1.5 bg-gold text-[#0a0808] text-xs uppercase tracking-wider">
+          Export / Guardar
         </button>
       </div>
 
@@ -349,15 +369,12 @@ export function ConstructorPage({ onSaved }: ConstructorPageProps) {
 
       {/* Main area */}
       <div className="flex-1 flex">
-        {/* Canvas */}
         <Canvas
           nodes={nodes}
           selectedIds={selectedIds}
           onSelect={selectOne}
           canvasBg={canvasBackground}
         />
-
-        {/* Inspector */}
         <Inspector
           selectedIds={selectedIds}
           nodes={nodes}
@@ -366,7 +383,7 @@ export function ConstructorPage({ onSaved }: ConstructorPageProps) {
         />
       </div>
 
-      {/* Image Editor Modal */}
+      {/* Image Editor */}
       {imageEditorOpen && (
         <ImageEditor
           imageUrl={imageEditorConfig.imageUrl}
@@ -378,7 +395,7 @@ export function ConstructorPage({ onSaved }: ConstructorPageProps) {
         />
       )}
 
-      {/* Export Panel Modal */}
+      {/* Export Panel */}
       {exportPanelOpen && (
         <ExportPanel
           design={exportPanelConfig.design}
