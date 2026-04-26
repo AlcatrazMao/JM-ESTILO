@@ -1,19 +1,48 @@
 // Properties Panel - Edit selected node properties
 
+import { useState, useRef } from 'react'
 import { useDesignStore, rootDesignId } from '../../store/designStore'
 
 export function PropertiesPanel() {
   const { nodes, selectedIds, patchNode, updateContent } = useDesignStore()
-
+  const fileInputRef = useRef<HTMLInputElement>(null)
+  
   const selectedIdsWithoutRoot = selectedIds.filter(id => id !== rootDesignId)
   const selectedId = selectedIdsWithoutRoot[0]
   const node = selectedId ? nodes[selectedId] : null
+
+  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file || !node) return
+    
+    const reader = new FileReader()
+    reader.onload = () => {
+      updateContent(node.id, { src: reader.result as string, alt: file.name })
+    }
+    reader.readAsDataURL(file)
+  }
 
   if (!node) {
     return (
       <div className="w-56 bg-surface border-l border-bg-dim p-3">
         <h3 className="text-xs font-bold text-text-dim mb-2">PROPERTIES</h3>
         <p className="text-xs text-text-dim">Select an element to edit its properties</p>
+        
+        {/* Quick add buttons */}
+        <div className="mt-4 space-y-2">
+          <button
+            onClick={() => useDesignStore.getState().addNode('text')}
+            className="w-full py-2 bg-bg hover:bg-bg-dim rounded text-xs"
+          >
+            + Agregar Texto
+          </button>
+          <button
+            onClick={() => useDesignStore.getState().addNode('image')}
+            className="w-full py-2 bg-bg hover:bg-bg-dim rounded text-xs"
+          >
+            + Agregar Imagen
+          </button>
+        </div>
       </div>
     )
   }
@@ -148,6 +177,24 @@ export function PropertiesPanel() {
 
       {node.type === 'image' && (
         <>
+          {/* Upload Image */}
+          <div className="mb-4">
+            <label className="text-xs text-text-dim block mb-1">Subir Imagen</label>
+            <input
+              type="file"
+              accept="image/*"
+              ref={fileInputRef}
+              onChange={handleImageUpload}
+              className="hidden"
+            />
+            <button
+              onClick={() => fileInputRef.current?.click()}
+              className="w-full py-2 bg-gold hover:bg-gold/80 text-surface font-bold rounded text-xs"
+            >
+              📁 Elegir Archivo
+            </button>
+          </div>
+
           {/* Image URL */}
           <div className="mb-4">
             <label className="text-xs text-text-dim block mb-1">Image URL</label>

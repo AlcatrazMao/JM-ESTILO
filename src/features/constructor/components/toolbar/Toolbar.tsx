@@ -94,26 +94,31 @@ export function TopToolbar() {
 
 export function ToolbarActions() {
   const { zoom, setZoom } = useConstructor()
-  const { quickAddText, quickAddImage, quickAddDiv, quickDelete } = useConstructorActions()
+  const { addNode } = useDesignStore()
+  
+  const quickAddText = () => addNode('text')
+  const quickAddImage = () => addNode('image')
+  const quickAddDiv = () => addNode('div')
+  const quickDelete = () => useDesignStore.getState().deleteSelected()
   
   return (
     <div className="flex items-center gap-2">
-      {/* Add buttons */}
-      <button onClick={quickAddText} className="px-3 py-1.5 text-xs bg-bg border border-border hover:border-gold rounded">
-        +Aa Text
+      {/* Add buttons - prominent */}
+      <button onClick={quickAddText} className="px-3 py-1.5 text-xs bg-gold text-surface font-bold rounded hover:bg-gold/80">
+        +Aa Texto
       </button>
-      <button onClick={quickAddImage} className="px-3 py-1.5 text-xs bg-bg border border-border hover:border-gold rounded">
-        +🖼 Image
+      <button onClick={quickAddImage} className="px-3 py-1.5 text-xs bg-gold text-surface font-bold rounded hover:bg-gold/80">
+        +🖼 Imagen
       </button>
-      <button onClick={quickAddDiv} className="px-3 py-1.5 text-xs bg-bg border border-border hover:border-gold rounded">
-        +□ Div
+      <button onClick={quickAddDiv} className="px-3 py-1.5 text-xs bg-gold text-surface font-bold rounded hover:bg-gold/80">
+        +▢ Caja
       </button>
       
       <div className="w-px h-6 bg-border" />
       
       {/* Delete */}
       <button onClick={quickDelete} className="px-3 py-1.5 text-xs bg-red-500/10 text-red-500 rounded hover:bg-red-500/20">
-        Delete
+        🗑 Delete
       </button>
       
       <div className="flex-1" />
@@ -128,7 +133,7 @@ export function ToolbarActions() {
           +
         </button>
         <button onClick={() => setZoom(0.4)} className="px-2 py-1 text-xs hover:bg-surface rounded">
-          Reset
+          Fit
         </button>
       </div>
     </div>
