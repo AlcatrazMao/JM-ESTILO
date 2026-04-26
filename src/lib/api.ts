@@ -25,12 +25,12 @@ export async function saveDesign(payload: {
   if (!res.ok) throw new Error(`Save failed: ${res.status}`)
 }
 
-export async function fetchDesigns() {
+export async function fetchDesigns(): Promise<unknown[]> {
   const res = await fetch(`${BASE}/api/designs`, {
     headers: await authHeaders(),
     credentials: 'include',
   })
   if (!res.ok) throw new Error(`Fetch failed: ${res.status}`)
-  const { data } = await res.json<{ data: unknown[] }>()
-  return data
+  const json = await res.json() as { data: unknown[] }
+  return json.data
 }
