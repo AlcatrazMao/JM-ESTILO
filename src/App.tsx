@@ -11,7 +11,7 @@ import { auth } from './lib/firebase'
 import { onAuthStateChanged, User } from 'firebase/auth'
 
 // Lazy load constructor (heavy module - only loads when needed)
-const ConstructorPage = lazy(() => import('./features/constructor/components/ConstructorPage').then(m => ({ default: m.ConstructorPage })))
+const ConstructorPage = lazy(() => import('./features/constructor/components/ConstructorPage').then(m => ({ default: m.default })))
 
 type Page = 'viewer' | 'catalog' | 'designs' | 'constructor'
 type Layout = 'split' | 'cinematic' | 'studio'
@@ -127,7 +127,7 @@ function App() {
               <div className="text-gold text-sm tracking-widest animate-pulse">CARGANDO EDITOR...</div>
             </div>
           }>
-            <ConstructorPage onSaved={() => setPage('designs')} />
+            <ConstructorPage />
           </Suspense>
         )}
       </div>

@@ -21,7 +21,6 @@ export async function uploadImage(
 ): Promise<CloudinaryUploadResponse> {
   let dataUrl: string
   
-  // Convert file to data URL if needed
   if (typeof file !== 'string') {
     dataUrl = await new Promise<string>((resolve, reject) => {
       const reader = new FileReader()
@@ -33,58 +32,35 @@ export async function uploadImage(
     dataUrl = file
   }
   
-  // Remove prefix from base64
   const base64Data = dataUrl.replace(/^data:image\/\w+;base64,/, '')
-  
-  // Upload to Cloudinary
   const formData = new FormData()
   formData.append('file', base64Data)
   formData.append('upload_preset', CLOUDINARY_UPLOAD_PRESET)
   
   const response = await fetch(
     `https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/image/upload`,
-    {
-      method: 'POST',
-      body: formData,
-    }
+    { method: 'POST', body: formData }
   )
   
-  if (!response.ok) {
-    throw new Error(`Upload failed: ${response.statusText}`)
-  }
-  
+  if (!response.ok) throw new Error(`Upload failed: ${response.statusText}`)
   return response.json()
 }
 
-/**
- * Upload base64 image directly
- */
 export async function uploadBase64(base64: string): Promise<CloudinaryUploadResponse> {
-  // Remove prefix from base64
   const base64Data = base64.replace(/^data:image\/\w+;base64,/, '')
-  
   const formData = new FormData()
   formData.append('file', base64Data)
   formData.append('upload_preset', CLOUDINARY_UPLOAD_PRESET)
   
   const response = await fetch(
     `https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/image/upload`,
-    {
-      method: 'POST',
-      body: formData,
-    }
+    { method: 'POST', body: formData }
   )
   
-  if (!response.ok) {
-    throw new Error(`Upload failed: ${response.statusText}`)
-  }
-  
+  if (!response.ok) throw new Error(`Upload failed: ${response.statusText}`)
   return response.json()
 }
 
-/**
- * Get optimized image URL
- */
 export function getImageUrl(publicId: string, options: {
   width?: number
   height?: number
@@ -92,15 +68,41 @@ export function getImageUrl(publicId: string, options: {
   quality?: 'auto' | number
 } = {}): string {
   const transforms: string[] = []
-  
   if (options.width) transforms.push(`w_${options.width}`)
   if (options.height) transforms.push(`h_${options.height}`)
   if (options.crop) transforms.push(`c_${options.crop}`)
   if (options.quality) transforms.push(`q_${options.quality}`)
-  
   const transform = transforms.length > 0 ? `${transforms.join(',')}/` : ''
-  
   return `https://res.cloudinary.com/${CLOUDINARY_CLOUD_NAME}/image/upload/${transform}${publicId}`
+}
+
+// Design Persistence Helpers
+export function saveDesignLocally(key: string, data: any): void {
+  try {
+    localStorage.setItem(`jm-estilo-${key}`, JSON.stringify(data))
+  } catch (e) {
+    console.error('Failed to save locally:', e)
+  }
+}
+
+export function loadDesignLocally(key: string): any | null {
+  try {
+    const data = localStorage.getItem(`jm-estilo-${key}`)
+    return data ? JSON.parse(data) : null
+  } catch (e) {
+    return null
+  }
+}
+
+export function listDesignsLocally(): string[] {
+  const keys: string[] = []
+  for (let i = 0; i < localStorage.length; i++) {
+    const key = localStorage.key(i)
+    if (key?.startsWith('jm-estilo-')) {
+      keys.push(key.replace('jm-estilo-', ''))
+    }
+  }
+  return keys
 }
 
 export default {
