@@ -1,7 +1,8 @@
 // Image Editor - Upload, crop, resize for print designs
-// Uses native Canvas API - no heavy libraries
+// Uses Cloudinary for free storage
 
 import { useState, useRef, useCallback, useEffect } from 'react'
+import { uploadImage } from '../../../lib/storage'
 
 interface ImageEditorProps {
   imageUrl?: string
@@ -99,17 +100,24 @@ export function ImageEditor({
     setIsUploading(true)
     setError(null)
     
-    // Use base64 instead of Firebase Storage (free tier)
-    const reader = new FileReader()
-    reader.onload = () => {
-      setSrc(reader.result as string)
+    try {
+      // Upload to Cloudinary (25GB free!)
+      const result = await uploadImage(file)
+      setSrc(result.secure_url)
+    } catch (err) {
+      // Fallback to base64 if Cloudinary fails
+      console.warn('Cloudinary failed, using base64:', err)
+      const reader = new FileReader()
+      reader.onload = () => {
+        setSrc(reader.result as string)
+      }
+      reader.onerror = () => {
+        setError('Failed to read file')
+      }
+      reader.readAsDataURL(file)
+    } finally {
       setIsUploading(false)
     }
-    reader.onerror = () => {
-      setError('Failed to read file')
-      setIsUploading(false)
-    }
-    reader.readAsDataURL(file)
   }, [])
 
   // Handle crop adjustment
