@@ -1,7 +1,8 @@
 // Properties Panel - Edit selected node properties
 
-import { useState, useRef } from 'react'
+import { useRef } from 'react'
 import { useDesignStore, rootDesignId } from '../../store/designStore'
+import { uploadImage } from '../../../../lib/storage'
 
 export function PropertiesPanel() {
   const { nodes, selectedIds, patchNode, updateContent } = useDesignStore()
@@ -11,15 +12,23 @@ export function PropertiesPanel() {
   const selectedId = selectedIdsWithoutRoot[0]
   const node = selectedId ? nodes[selectedId] : null
 
-  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (!file || !node) return
     
-    const reader = new FileReader()
-    reader.onload = () => {
-      updateContent(node.id, { src: reader.result as string, alt: file.name })
+    // Upload to Cloudinary (25GB free!)
+    try {
+      const result = await uploadImage(file)
+      updateContent(node.id, { src: result.secure_url, alt: file.name })
+    } catch (err) {
+      console.warn('Cloudinary failed, using local:', err)
+      // Fallback: local base64
+      const reader = new FileReader()
+      reader.onload = () => {
+        updateContent(node.id, { src: reader.result as string, alt: file.name })
+      }
+      reader.readAsDataURL(file)
     }
-    reader.readAsDataURL(file)
   }
 
   if (!node) {
