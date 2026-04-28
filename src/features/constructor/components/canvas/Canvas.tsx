@@ -1,4 +1,4 @@
-// Canvas with full drag and drop support - FIXED VERSION
+// Canvas with full drag and drop support - PRO VERSION
 import { useState, useRef, useCallback, useEffect } from 'react'
 import { useDesignStore, rootDesignId } from '../../store/designStore'
 import { useKeyboardShortcuts } from '../../hooks/useKeyboardShortcuts'
@@ -10,16 +10,20 @@ interface CanvasProps {
 }
 
 export function Canvas({ zoom, onZoomChange, mockupMode }: CanvasProps) {
-  const { nodes, selectedIds, canvasBackground, selectOne, patchNode, addNode } = useDesignStore()
+  const { nodes, selectedIds, canvasBackground, garmentColor, selectOne, patchNode, addNode, updateContent } = useDesignStore()
   const root = nodes[rootDesignId]
   
   const [isDragging, setIsDragging] = useState(false)
-  const [dragNodeId, setDragNodeId] = useState<string | null>(null)
-  const [dragStart, setDragStart] = useState({ x: 0, y: 0, nodeX: 0, nodeY: 0 })
+  const [isResizing, setIsResizing] = useState(false)
+  const [activeNodeId, setActiveNodeId] = useState<string | null>(null)
+  const [editingNodeId, setEditingNodeId] = useState<string | null>(null)
+  
+  const [dragStart, setDragStart] = useState({ x: 0, y: 0, nodeX: 0, nodeY: 0, nodeW: 0, nodeH: 0 })
   const [showAddMenu, setShowAddMenu] = useState(false)
   const [addMenuPos, setAddMenuPos] = useState({ x: 0, y: 0 })
   
   const canvasRef = useRef<HTMLDivElement>(null)
+  const inputRef = useRef<HTMLInputElement>(null)
 
   // Keyboard shortcuts
   useKeyboardShortcuts({})
@@ -30,8 +34,8 @@ export function Canvas({ zoom, onZoomChange, mockupMode }: CanvasProps) {
     e.stopPropagation()
   }, [])
 
-  // Mouse handlers for drag
-  const handleMouseDown = useCallback((e: React.MouseEvent, nodeId: string) => {
+  // Mouse handlers for move and resize
+  const handleMouseDown = useCallback((e: React.MouseEvent, nodeId: string, mode: 'move' | 'resize' = 'move') => {
     if (e.button !== 0) return
     e.stopPropagation()
     
@@ -39,42 +43,66 @@ export function Canvas({ zoom, onZoomChange, mockupMode }: CanvasProps) {
     if (!node || node.locked) return
     
     selectOne(nodeId)
-    setDragNodeId(nodeId)
-    setDragStart({
-      x: e.clientX,
-      y: e.clientY,
-      nodeX: node.position.x,
-      nodeY: node.position.y,
-    })
-    setIsDragging(true)
+    setActiveNodeId(nodeId)
+    
+    if (mode === 'move') {
+      setIsDragging(true)
+      setIsResizing(false)
+      setDragStart({
+        x: e.clientX,
+        y: e.clientY,
+        nodeX: node.position.x,
+        nodeY: node.position.y,
+        nodeW: node.size.w,
+        nodeH: node.size.h,
+      })
+    } else {
+      setIsResizing(true)
+      setIsDragging(false)
+      setDragStart({
+        x: e.clientX,
+        y: e.clientY,
+        nodeX: node.position.x,
+        nodeY: node.position.y,
+        nodeW: node.size.w,
+        nodeH: node.size.h,
+      })
+    }
   }, [nodes, selectOne])
 
   const handleMouseMove = useCallback((e: React.MouseEvent) => {
-    if (!isDragging || !dragNodeId) return
+    if (!activeNodeId) return
     
     const dx = (e.clientX - dragStart.x) / zoom
     const dy = (e.clientY - dragStart.y) / zoom
     
-    const newX = Math.round(dragStart.nodeX + dx)
-    const newY = Math.round(dragStart.nodeY + dy)
-    
-    patchNode(dragNodeId, { 
-      position: { x: newX, y: newY } 
-    })
-  }, [isDragging, dragNodeId, dragStart, zoom, patchNode])
+    if (isDragging) {
+      patchNode(activeNodeId, { 
+        position: { x: Math.round(dragStart.nodeX + dx), y: Math.round(dragStart.nodeY + dy) } 
+      })
+    } else if (isResizing) {
+      patchNode(activeNodeId, { 
+        size: { 
+          w: Math.max(20, Math.round(dragStart.nodeW + dx)), 
+          h: Math.max(20, Math.round(dragStart.nodeH + dy)) 
+        } 
+      })
+    }
+  }, [isDragging, isResizing, activeNodeId, dragStart, zoom, patchNode])
 
   const handleMouseUp = useCallback(() => {
     setIsDragging(false)
-    setDragNodeId(null)
+    setIsResizing(false)
+    setActiveNodeId(null)
   }, [])
 
   useEffect(() => {
     const handleGlobalMouseUp = () => {
-      if (isDragging) handleMouseUp()
+      if (isDragging || isResizing) handleMouseUp()
     }
     window.addEventListener('mouseup', handleGlobalMouseUp)
     return () => window.removeEventListener('mouseup', handleGlobalMouseUp)
-  }, [isDragging, handleMouseUp])
+  }, [isDragging, isResizing, handleMouseUp])
 
   const handleCanvasDoubleClick = useCallback((e: React.MouseEvent) => {
     e.preventDefault()
@@ -197,7 +225,8 @@ export function Canvas({ zoom, onZoomChange, mockupMode }: CanvasProps) {
               if (!node || node.visible === false) return null
               
               const isSelected = selectedIds.includes(id)
-              const isBeingDragged = dragNodeId === id
+              const isBeingDragged = activeNodeId === id && isDragging
+              const isBeingResized = activeNodeId === id && isResizing
               
               const bgColor = node.styles?.background as string || 'transparent'
               const textColor = node.styles?.color as string || '#000000'
@@ -231,22 +260,47 @@ export function Canvas({ zoom, onZoomChange, mockupMode }: CanvasProps) {
                   }}
                   onMouseDown={(e) => handleMouseDown(e, id)}
                   onContextMenu={handleContextMenu}
+                  onDoubleClick={(e) => {
+                    if (node.type === 'text') {
+                      e.stopPropagation()
+                      setEditingNodeId(id)
+                    }
+                  }}
                 >
-                  {!isImage && content}
-                  {isImage && content && (
-                    <img 
-                      src={content} 
-                      alt="" 
-                      className="w-full h-full object-contain pointer-events-none"
-                      draggable={false}
-                    />
+                  {isImage ? (
+                    content && (
+                      <img 
+                        src={content} 
+                        alt="" 
+                        className="w-full h-full object-contain pointer-events-none"
+                        draggable={false}
+                      />
+                    )
+                  ) : (
+                    editingNodeId === id ? (
+                      <input
+                        ref={inputRef}
+                        autoFocus
+                        className="w-full h-full bg-transparent border-none outline-none text-center p-0 m-0"
+                        value={content}
+                        onChange={(e) => updateContent(id, { text: e.target.value })}
+                        onBlur={() => setEditingNodeId(null)}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') setEditingNodeId(null)
+                        }}
+                      />
+                    ) : (
+                      content || <span className="text-text-dim text-xs">Empty</span>
+                    )
                   )}
-                  {!isImage && !content && (
-                    <span className="text-text-dim text-xs">Empty</span>
-                  )}
+                  
                   {isSelected && (
                     <div 
-                      className="absolute -bottom-1 -right-1 w-3 h-3 bg-gold rounded-sm cursor-se-resize"
+                      className="absolute -bottom-1 -right-1 w-3 h-3 bg-gold rounded-sm cursor-se-resize z-20"
+                      onMouseDown={(e) => {
+                        e.stopPropagation()
+                        handleMouseDown(e, id, 'resize')
+                      }}
                       style={{ transform: 'scale(0.5)' }}
                     />
                   )}

@@ -52,6 +52,7 @@ type DesignStore = {
   activeContainerId: string | null
   canvasSize: { w: number; h: number }
   canvasBackground: string
+  garmentColor: string
   history: DesignSnapshot[]
   historyIndex: number
   clipboard: DesignNode[]
@@ -69,6 +70,7 @@ type DesignStore = {
   duplicateSelected: () => void
   updateContent: (id: string, content: DesignNodeContent) => void
   setCanvasBackground: (bg: string) => void
+  setGarmentColor: (color: string) => void
   undo: () => void
   redo: () => void
   saveDesign: (name: string) => void
@@ -98,6 +100,7 @@ export const useDesignStore = create<DesignStore>((set, get) => {
     activeContainerId: ROOT_ID,
     canvasSize: { w: CANVAS_WIDTH, h: CANVAS_HEIGHT },
     canvasBackground: '#ffffff',
+    garmentColor: '#ffffff',
     history: [initialSnapshot],
     historyIndex: 0,
     clipboard: [],
@@ -175,6 +178,7 @@ export const useDesignStore = create<DesignStore>((set, get) => {
       set({ nodes: nextNodes, ...pushHistory() })
     },
     setCanvasBackground: (bg) => set({ canvasBackground: bg }),
+    setGarmentColor: (color) => set({ garmentColor: color }),
     undo: () => {
       const { history, historyIndex } = get()
       if (historyIndex <= 0) return

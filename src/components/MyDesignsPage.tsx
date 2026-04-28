@@ -5,8 +5,9 @@ interface MyDesignsPageProps {
   savedDesigns: Design[]
   setSavedDesigns: (designs: Design[]) => void
   setSelectedStamp: (stamp: any) => void
-  setPage: (page: 'viewer' | 'catalog' | 'designs') => void
+  setPage: (page: 'viewer' | 'catalog' | 'designs' | 'constructor') => void
 }
+
 
 function DesignThumb({ design }: { design: Design }) {
   const canvasRef = useRef<HTMLCanvasElement>(null)
@@ -103,7 +104,7 @@ export function MyDesignsPage({
   const load = (d: Design) => {
     const stamp = STAMPS.find((s) => s.id === d.stampId)
     if (stamp) setSelectedStamp(stamp)
-    setPage('viewer')
+    setPage('constructor')
   }
 
   return (
