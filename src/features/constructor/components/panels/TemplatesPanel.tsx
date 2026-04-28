@@ -179,18 +179,18 @@ export function TemplatesPanel() {
   }
 
   return (
-    <div className="w-56 bg-surface border-l border-bg-dim p-3 overflow-y-auto">
-      <h3 className="text-xs font-bold text-gold mb-3">TEMPLATES</h3>
+    <div className="w-56 bg-surface/80 backdrop-blur-md border-l border-bg-dim/50 p-3 rounded-2xl shadow-xl">
+      <h3 className="text-xs font-bold text-gold mb-3 uppercase tracking-wider">Templates</h3>
       
       <div className="space-y-2">
         {TEMPLATES.map(template => (
           <button
             key={template.id}
             onClick={() => handleCreateTemplate(template)}
-            className="w-full text-left p-3 bg-bg hover:bg-bg-dim rounded transition-colors"
+            className="w-full text-left p-3 bg-bg/50 hover:bg-bg-dim rounded-xl transition-all border border-transparent hover:border-gold/30 group"
           >
-            <p className="text-xs font-bold">{template.name}</p>
-            <p className="text-xs text-text-dim">{template.description}</p>
+            <p className="text-xs font-bold group-hover:text-gold transition-colors">{template.name}</p>
+            <p className="text-[10px] text-text-dim">{template.description}</p>
           </button>
         ))}
       </div>

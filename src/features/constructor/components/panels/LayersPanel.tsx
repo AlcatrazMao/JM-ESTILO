@@ -2,32 +2,28 @@
 
 import { useDesignStore, rootDesignId } from '../../store/designStore'
 
+function getNodeName(node: any) {
+  if (node.name) return node.name
+  if (node.type === 'text') return (node.content as any)?.text?.slice(0, 15) || 'Text'
+  return node.type.toUpperCase()
+}
+
 export function LayersPanel() {
   const { nodes, selectedIds, selectOne } = useDesignStore()
   const root = nodes[rootDesignId]
   
   if (!root) return null
 
-  const getNodeName = (node: any) => {
-    if (node.type === 'text') return node.content?.text?.slice(0, 20) || 'Text'
-    if (node.type === 'image') return 'Image'
-    if (node.type === 'div') return node.name || 'Group'
-    return node.type
-  }
-
-  // Sort children so top-most is first in list (reverse of render order)
   const sortedChildren = [...root.children].reverse()
 
   return (
-    <div className="w-48 bg-surface border-r border-border flex flex-col">
-      <div className="h-10 px-3 flex items-center border-b border-border">
-        <span className="text-xs uppercase tracking-wider text-text-dim">Layers</span>
-      </div>
+    <div className="w-56 bg-surface/80 backdrop-blur-md border-r border-bg-dim/50 p-3 rounded-2xl shadow-xl">
+      <h3 className="text-xs font-bold text-text-dim mb-3 uppercase tracking-wider">Layers</h3>
       
-      <div className="flex-1 overflow-auto p-2 space-y-1">
+      <div className="space-y-1">
         {sortedChildren.map((id: string) => {
           const node = nodes[id]
-          if (!node || node.visible === false) return null
+          if (!node) return null
           
           const isSelected = selectedIds.includes(id)
           
@@ -35,39 +31,28 @@ export function LayersPanel() {
             <button
               key={id}
               onClick={() => selectOne(id)}
-              className={`w-full px-2 py-1.5 text-left text-xs rounded flex items-center gap-2 transition-colors ${
+              className={`w-full flex items-center gap-2 px-3 py-2 rounded-xl text-xs transition-all ${
                 isSelected 
-                  ? 'bg-gold/20 text-gold' 
-                  : 'hover:bg-bg'
+                  ? 'bg-gold text-surface font-bold shadow-md' 
+                  : 'bg-bg/50 hover:bg-bg-dim text-text'
               }`}
             >
-              {/* Type icon */}
-              <span className="w-5 text-center">
-                {node.type === 'text' && 'Aa'}
-                {node.type === 'image' && '🖼'}
-                {node.type === 'div' && '□'}
-              </span>
-              
-              {/* Name */}
-              <span className="flex-1 truncate">
-                {getNodeName(node)}
-              </span>
-              
-              {/* Visibility indicator */}
-              {(node.visible === undefined || node.visible === true) ? (
-                <span className="w-2 h-2 rounded-full bg-gold/50" />
-              ) : null}
+              <span className="opacity-50">{node.type === 'text' ? 'T' : node.type === 'image' ? 'I' : 'D'}</span>
+              <span className="flex-1 truncate">{getNodeName(node)}</span>
+              {node.visible !== false && (
+                <span className="w-1.5 h-1.5 rounded-full bg-gold/50" />
+              )}
             </button>
           )
         })}
-        
-        {sortedChildren.length === 0 && (
-          <div className="text-xs text-text-dim text-center py-4">
-            No layers yet.<br/>
-            Add text or images to start.
-          </div>
-        )}
       </div>
+      
+      {sortedChildren.length === 0 && (
+        <div className="text-xs text-text-dim text-center py-8 opacity-50">
+          No layers yet.<br/>
+          Add text or images to start.
+        </div>
+      )}
     </div>
   )
 }

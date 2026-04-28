@@ -152,22 +152,29 @@ export function Canvas({ zoom, onZoomChange, mockupMode }: CanvasProps) {
         <div className={`relative transition-all duration-500 ${mockupMode ? 'scale-110' : ''}`}>
           {mockupMode && (
             <div 
-              className="absolute inset-0 -z-10 pointer-events-none"
+              className="absolute inset-0 -z-10 pointer-events-none flex items-center justify-center"
               style={{
-                width: root.size.w * zoom * 1.5,
-                height: root.size.h * zoom * 1.5,
-                backgroundImage: 'url("https://www.pngmart.com/files/13/T-Shirt-PNG-Transparent-Image.png")',
-                backgroundSize: 'contain',
-                backgroundPosition: 'center',
-                backgroundRepeat: 'no-repeat',
-                transform: 'translate(-25%, -10%)'
+                width: '100%',
+                height: '100%',
               }}
-            />
+            >
+              <img 
+                src="https://www.pngarts.com/files/3/T-Shirt-PNG-Image.png" 
+                className="absolute opacity-80 transition-all duration-500"
+                style={{
+                  width: root.size.w * zoom * 2.2,
+                  height: 'auto',
+                  filter: 'brightness(0.9) contrast(1.1)',
+                  transform: 'translateY(-5%)'
+                }}
+                alt="T-shirt Mockup"
+              />
+            </div>
           )}
           
           <div
-            className={`relative shadow-lg mx-auto transition-all duration-500 ${
-              mockupMode ? 'opacity-90 ring-0' : 'shadow-lg'
+            className={`relative transition-all duration-500 ${
+              mockupMode ? 'opacity-90 ring-0' : 'shadow-2xl'
             }`}
             style={{
               width: root.size.w * zoom,
@@ -175,6 +182,7 @@ export function Canvas({ zoom, onZoomChange, mockupMode }: CanvasProps) {
               backgroundColor: mockupMode ? 'transparent' : (canvasBackground || '#ffffff'),
               backgroundImage: mockupMode ? 'none' : 'radial-gradient(circle, #ddd 1px, transparent 1px)',
               backgroundSize: mockupMode ? 'none' : `${20 * zoom}px ${20 * zoom}px`,
+              zIndex: 1,
             }}
             onClick={(e) => {
               if (e.target === e.currentTarget) {

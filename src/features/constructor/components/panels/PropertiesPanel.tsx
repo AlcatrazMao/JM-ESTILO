@@ -16,13 +16,11 @@ export function PropertiesPanel() {
     const file = e.target.files?.[0]
     if (!file || !node) return
     
-    // Upload to Cloudinary (25GB free!)
     try {
       const result = await uploadImage(file)
       updateContent(node.id, { src: result.secure_url, alt: file.name })
     } catch (err) {
       console.warn('Cloudinary failed, using local:', err)
-      // Fallback: local base64
       const reader = new FileReader()
       reader.onload = () => {
         updateContent(node.id, { src: reader.result as string, alt: file.name })
@@ -33,21 +31,20 @@ export function PropertiesPanel() {
 
   if (!node) {
     return (
-      <div className="w-56 bg-surface border-l border-bg-dim p-3">
-        <h3 className="text-xs font-bold text-text-dim mb-2">PROPERTIES</h3>
-        <p className="text-xs text-text-dim">Select an element to edit its properties</p>
+      <div className="w-56 bg-surface/80 backdrop-blur-md border-l border-bg-dim/50 p-3 rounded-2xl shadow-xl">
+        <h3 className="text-xs font-bold text-text-dim mb-2 uppercase tracking-wider">Properties</h3>
+        <p className="text-xs text-text-dim opacity-60">Select an element to edit its properties</p>
         
-        {/* Quick add buttons */}
         <div className="mt-4 space-y-2">
           <button
             onClick={() => useDesignStore.getState().addNode('text')}
-            className="w-full py-2 bg-bg hover:bg-bg-dim rounded text-xs"
+            className="w-full py-2 bg-bg hover:bg-bg-dim rounded-xl text-xs transition-all border border-bg-dim/50"
           >
             + Agregar Texto
           </button>
           <button
             onClick={() => useDesignStore.getState().addNode('image')}
-            className="w-full py-2 bg-bg hover:bg-bg-dim rounded text-xs"
+            className="w-full py-2 bg-bg hover:bg-bg-dim rounded-xl text-xs transition-all border border-bg-dim/50"
           >
             + Agregar Imagen
           </button>
@@ -79,8 +76,8 @@ export function PropertiesPanel() {
   }
 
   return (
-    <div className="w-56 bg-surface border-l border-bg-dim p-3 overflow-y-auto">
-      <h3 className="text-xs font-bold text-gold mb-3">{node.name}</h3>
+    <div className="w-56 bg-surface/80 backdrop-blur-md border-l border-bg-dim/50 p-3 rounded-2xl shadow-xl overflow-y-auto">
+      <h3 className="text-xs font-bold text-gold mb-3 uppercase tracking-wider">{node.name}</h3>
 
       {/* Position */}
       <div className="mb-4">
@@ -92,7 +89,7 @@ export function PropertiesPanel() {
               type="number"
               value={node.position.x}
               onChange={(e) => handlePositionChange('x', Number(e.target.value))}
-              className="w-full bg-bg border border-bg-dim rounded px-2 py-1 text-xs"
+              className="w-full bg-bg border border-bg-dim rounded-lg px-2 py-1 text-xs"
             />
           </div>
           <div className="flex-1">
@@ -101,7 +98,7 @@ export function PropertiesPanel() {
               type="number"
               value={node.position.y}
               onChange={(e) => handlePositionChange('y', Number(e.target.value))}
-              className="w-full bg-bg border border-bg-dim rounded px-2 py-1 text-xs"
+              className="w-full bg-bg border border-bg-dim rounded-lg px-2 py-1 text-xs"
             />
           </div>
         </div>
@@ -117,7 +114,7 @@ export function PropertiesPanel() {
               type="number"
               value={node.size.w}
               onChange={(e) => handleSizeChange('w', Number(e.target.value))}
-              className="w-full bg-bg border border-bg-dim rounded px-2 py-1 text-xs"
+              className="w-full bg-bg border border-bg-dim rounded-lg px-2 py-1 text-xs"
             />
           </div>
           <div className="flex-1">
@@ -126,7 +123,7 @@ export function PropertiesPanel() {
               type="number"
               value={node.size.h}
               onChange={(e) => handleSizeChange('h', Number(e.target.value))}
-              className="w-full bg-bg border border-bg-dim rounded px-2 py-1 text-xs"
+              className="w-full bg-bg border border-bg-dim rounded-lg px-2 py-1 text-xs"
             />
           </div>
         </div>
@@ -135,45 +132,41 @@ export function PropertiesPanel() {
       {/* Styles */}
       {node.type === 'text' && (
         <>
-          {/* Text Content */}
           <div className="mb-4">
             <label className="text-xs text-text-dim block mb-1">Text</label>
             <textarea
               value={(node.content as any)?.text || ''}
               onChange={(e) => handleContentChange({ text: e.target.value })}
-              className="w-full bg-bg border border-bg-dim rounded px-2 py-1 text-xs h-20 resize-none"
+              className="w-full bg-bg border border-bg-dim rounded-lg px-2 py-1 text-xs h-20 resize-none"
             />
           </div>
 
-          {/* Font Size */}
           <div className="mb-4">
             <label className="text-xs text-text-dim block mb-1">Font Size</label>
             <input
               type="number"
               value={(node.styles as any)?.fontSize || 24}
               onChange={(e) => handleStyleChange('fontSize', Number(e.target.value))}
-              className="w-full bg-bg border border-bg-dim rounded px-2 py-1 text-xs"
+              className="w-full bg-bg border border-bg-dim rounded-lg px-2 py-1 text-xs"
             />
           </div>
 
-          {/* Color */}
           <div className="mb-4">
             <label className="text-xs text-text-dim block mb-1">Text Color</label>
             <input
               type="color"
               value={(node.styles as any)?.color || '#000000'}
               onChange={(e) => handleStyleChange('color', e.target.value)}
-              className="w-full h-8 bg-bg border border-bg-dim rounded cursor-pointer"
+              className="w-full h-8 bg-bg border border-bg-dim rounded-lg cursor-pointer"
             />
           </div>
 
-          {/* Font Weight */}
           <div className="mb-4">
             <label className="text-xs text-text-dim block mb-1">Font Weight</label>
             <select
               value={(node.styles as any)?.fontWeight || 400}
               onChange={(e) => handleStyleChange('fontWeight', Number(e.target.value))}
-              className="w-full bg-bg border border-bg-dim rounded px-2 py-1 text-xs"
+              className="w-full bg-bg border border-bg-dim rounded-lg px-2 py-1 text-xs"
             >
               <option value={400}>Normal</option>
               <option value={500}>Medium</option>
@@ -186,7 +179,6 @@ export function PropertiesPanel() {
 
       {node.type === 'image' && (
         <>
-          {/* Upload Image */}
           <div className="mb-4">
             <label className="text-xs text-text-dim block mb-1">Subir Imagen</label>
             <input
@@ -198,31 +190,29 @@ export function PropertiesPanel() {
             />
             <button
               onClick={() => fileInputRef.current?.click()}
-              className="w-full py-2 bg-gold hover:bg-gold/80 text-surface font-bold rounded text-xs"
+              className="w-full py-2 bg-gold hover:bg-gold/80 text-surface font-bold rounded-xl text-xs transition-all"
             >
               📁 Elegir Archivo
             </button>
           </div>
 
-          {/* Image URL */}
           <div className="mb-4">
             <label className="text-xs text-text-dim block mb-1">Image URL</label>
             <input
               type="text"
               value={(node.content as any)?.src || ''}
               onChange={(e) => handleContentChange({ src: e.target.value, alt: (node.content as any)?.alt || '' })}
-              className="w-full bg-bg border border-bg-dim rounded px-2 py-1 text-xs"
+              className="w-full bg-bg border border-bg-dim rounded-lg px-2 py-1 text-xs"
               placeholder="https://..."
             />
           </div>
 
-          {/* Object Fit */}
           <div className="mb-4">
             <label className="text-xs text-text-dim block mb-1">Object Fit</label>
             <select
               value={(node.styles as any)?.objectFit || 'contain'}
               onChange={(e) => handleStyleChange('objectFit', e.target.value)}
-              className="w-full bg-bg border border-bg-dim rounded px-2 py-1 text-xs"
+              className="w-full bg-bg border border-bg-dim rounded-lg px-2 py-1 text-xs"
             >
               <option value="contain">Contain</option>
               <option value="cover">Cover</option>
@@ -230,31 +220,28 @@ export function PropertiesPanel() {
             </select>
           </div>
 
-          {/* Border Radius */}
           <div className="mb-4">
             <label className="text-xs text-text-dim block mb-1">Border Radius</label>
             <input
               type="number"
               value={(node.styles as any)?.borderRadius || 0}
               onChange={(e) => handleStyleChange('borderRadius', Number(e.target.value))}
-              className="w-full bg-bg border border-bg-dim rounded px-2 py-1 text-xs"
+              className="w-full bg-bg border border-bg-dim rounded-lg px-2 py-1 text-xs"
             />
           </div>
         </>
       )}
 
-      {/* Common styles */}
       <div className="mb-4">
         <label className="text-xs text-text-dim block mb-1">Background</label>
         <input
           type="color"
           value={(node.styles as any)?.background || '#ffffff'}
           onChange={(e) => handleStyleChange('background', e.target.value)}
-          className="w-full h-8 bg-bg border border-bg-dim rounded cursor-pointer"
+          className="w-full h-8 bg-bg border border-bg-dim rounded-lg cursor-pointer"
         />
       </div>
 
-      {/* Visibility */}
       <div className="mb-4">
         <label className="flex items-center gap-2 cursor-pointer">
           <input
@@ -267,7 +254,6 @@ export function PropertiesPanel() {
         </label>
       </div>
 
-      {/* Lock */}
       <div className="mb-4">
         <label className="flex items-center gap-2 cursor-pointer">
           <input
@@ -280,9 +266,8 @@ export function PropertiesPanel() {
         </label>
       </div>
 
-      {/* Node ID (debug) */}
-      <div className="mt-8 pt-3 border-t border-bg-dim">
-        <p className="text-xs text-text-dim break-all">{node.id}</p>
+      <div className="mt-8 pt-3 border-t border-bg-dim/50">
+        <p className="text-[10px] text-text-dim break-all opacity-40">{node.id}</p>
       </div>
     </div>
   )
